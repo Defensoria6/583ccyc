@@ -3,12 +3,18 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Art 583 CCyC – Defensoría Civil y Comercial 6 (con Firestore)</title>
+    <title>Art 583 CCyC – Defensoría Civil y Comercial 6 (con Realtime Database)</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --primary-1: #007bff;
+            --primary-2: #0056b3;
+            --bg-grad-a: #667eea;
+            --bg-grad-b: #764ba2;
+        }
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, var(--bg-grad-a) 0%, var(--bg-grad-b) 100%);
             min-height: 100vh;
             color: #333;
         }
@@ -23,96 +29,104 @@
             text-align: center;
         }
         .header h1, .header h2 { color: #2c3e50; font-weight: 700; }
-        .header h2 { font-size: 2.2rem; margin-bottom: 10px; }
+        .header h3 { font-size: clamp(1.1rem, 2.8vw, 1.4rem); margin-bottom: 8px; color:#2c3e50; }
         .article-info {
             background: #f8f9fa;
-            border-left: 4px solid #007bff;
+            border-left: 4px solid var(--primary-1);
             padding: 20px;
             margin: 20px 0;
             border-radius: 8px;
-            font-size: 0.95rem;
+            font-size: clamp(0.9rem, 2.2vw, 0.95rem);
             line-height: 1.6;
         }
-        .article-info h3 { color: #007bff; margin-bottom: 10px; }
+        .article-info h3 { color: var(--primary-1); margin-bottom: 10px; font-size: clamp(1.05rem, 3.2vw, 1.15rem); }
         .controls {
             background: rgba(255, 255, 255, 0.95);
             backdrop-filter: blur(10px);
             border-radius: 15px;
-            padding: 25px;
+            padding: 18px;
             margin-bottom: 30px;
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
         }
-        .controls-row { display: flex; gap: 15px; align-items: center; flex-wrap: wrap; margin-bottom: 15px; }
+        .controls-row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
         .btn {
-            background: linear-gradient(135deg, #007bff, #0056b3);
-            color: white; border: none; padding: 12px 24px; border-radius: 8px;
-            cursor: pointer; font-size: 14px; font-weight: 600; transition: all 0.3s ease;
+            background: linear-gradient(135deg, var(--primary-1), var(--primary-2));
+            color: white; border: none; padding: 12px 16px; border-radius: 10px;
+            cursor: pointer; font-size: 14px; font-weight: 600; transition: all 0.2s ease;
             text-decoration: none; display: inline-flex; align-items: center; gap: 8px;
+            touch-action: manipulation;
         }
-        .btn:hover { transform: translateY(-2px); box-shadow: 0 4px 15px rgba(0,123,255,.3); }
+        .btn:hover { transform: translateY(-1px); box-shadow: 0 4px 15px rgba(0,123,255,.25); }
         .btn-success { background: linear-gradient(135deg, #28a745, #1e7e34); }
         .btn-danger { background: linear-gradient(135deg, #dc3545, #c82333); }
         .btn-warning { background: linear-gradient(135deg, #ffc107, #e0a800); color: #212529; }
-        .btn-small { padding: 6px 12px; font-size: 12px; }
-        .search-box { flex: 1; min-width: 300px; padding: 12px 16px; border: 2px solid #e9ecef; border-radius: 8px; font-size: 14px; transition: border-color .3s ease; }
-        .search-box:focus { outline: none; border-color: #007bff; box-shadow: 0 0 0 3px rgba(0,123,255,.1); }
-        .cases-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 20px; margin-bottom: 30px; }
+        .btn-small { padding: 8px 10px; font-size: 12px; border-radius: 8px; }
+        .search-box { flex: 1; min-width: min(320px, 100%); padding: 12px 14px; border: 2px solid #e9ecef; border-radius: 10px; font-size: 14px; transition: border-color .2s ease; }
+        .search-box:focus { outline: none; border-color: var(--primary-1); box-shadow: 0 0 0 3px rgba(0,123,255,.1); }
+        .cases-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; margin-bottom: 30px; }
         .case-card {
             background: rgba(255, 255, 255, 0.95);
             backdrop-filter: blur(10px);
-            border-radius: 15px; padding: 25px; box-shadow: 0 8px 32px rgba(0,0,0,.1);
-            transition: all .3s ease; cursor: pointer;
+            border-radius: 15px; padding: 20px; box-shadow: 0 8px 32px rgba(0,0,0,.1);
+            transition: all .2s ease; cursor: pointer;
         }
-        .case-card:hover { transform: translateY(-5px); box-shadow: 0 12px 40px rgba(0,0,0,.15); }
-        .case-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 15px; }
-        .case-number { font-size: 1.2rem; font-weight: 700; color: #007bff; }
-        .case-status { padding: 4px 12px; border-radius: 20px; font-size: .8rem; font-weight: 600; text-transform: uppercase; }
+        .case-card:hover { transform: translateY(-4px); box-shadow: 0 12px 34px rgba(0,0,0,.15); }
+        .case-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; gap: 10px; }
+        .case-number { font-size: 1.05rem; font-weight: 700; color: var(--primary-1); word-break: break-word; }
+        .case-status { padding: 4px 10px; border-radius: 20px; font-size: .8rem; font-weight: 600; text-transform: uppercase; white-space: nowrap; }
         .status-pendiente { background: #fff3cd; color: #856404; }
         .status-en-proceso { background: #d1ecf1; color: #0c5460; }
         .status-resuelto { background: #d4edda; color: #155724; }
-        .case-info { margin-bottom: 15px; }
-        .case-info p { margin-bottom: 8px; font-size: .9rem; }
+        .case-info { margin-bottom: 10px; font-size: 0.95rem; }
+        .case-info p { margin-bottom: 6px; font-size: .9rem; }
         .case-info strong { color: #495057; }
-        .case-actions { display: flex; gap: 8px; margin-top: 15px; }
-        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,.5); backdrop-filter: blur(5px); }
-        .modal-content { background: white; margin: 2% auto; padding: 0; border-radius: 15px; width: 90%; max-width: 800px; max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,.3); animation: modalSlideIn .3s ease; }
-        @keyframes modalSlideIn { from { opacity: 0; transform: translateY(-50px); } to { opacity: 1; transform: translateY(0); } }
-        .modal-header { background: linear-gradient(135deg, #007bff, #0056b3); color: white; padding: 20px 30px; border-radius: 15px 15px 0 0; display: flex; justify-content: space-between; align-items: center; gap: 10px; }
-        .modal-header h2 { margin: 0; font-size: 1.5rem; }
+        .case-actions { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+        .modal { display: none; position: fixed; z-index: 1000; inset: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,.5); backdrop-filter: blur(5px); padding: 10px; }
+        .modal-content { background: white; margin: 0 auto; padding: 0; border-radius: 15px; width: min(100%, 900px); max-height: 92vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,.3); animation: modalSlideIn .25s ease; }
+        @keyframes modalSlideIn { from { opacity: 0; transform: translateY(-30px); } to { opacity: 1; transform: translateY(0); } }
+        .modal-header { background: linear-gradient(135deg, var(--primary-1), var(--primary-2)); color: white; padding: 16px 20px; border-radius: 15px 15px 0 0; display: flex; justify-content: space-between; align-items: center; gap: 10px; position: sticky; top: 0; }
+        .modal-header h2 { margin: 0; font-size: 1.2rem; }
         .modal-actions { display: flex; align-items: center; gap: 8px; }
-        .close { color: white; font-size: 28px; font-weight: bold; cursor: pointer; transition: opacity .3s ease; }
+        .close { color: white; font-size: 28px; font-weight: bold; cursor: pointer; transition: opacity .2s ease; }
         .close:hover { opacity: .7; }
-        .modal-body { padding: 30px; }
-        .form-group { margin-bottom: 20px; }
+        .modal-body { padding: 20px; }
+        .form-group { margin-bottom: 16px; }
         .form-group label { display: block; margin-bottom: 8px; font-weight: 600; color: #495057; }
-        .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 12px; border: 2px solid #e9ecef; border-radius: 8px; font-size: 14px; transition: border-color .3s ease; }
-        .form-group input:focus, .form-group select:focus, .form-group textarea:focus { outline: none; border-color: #007bff; box-shadow: 0 0 0 3px rgba(0,123,255,.1); }
+        .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 12px; border: 2px solid #e9ecef; border-radius: 10px; font-size: 14px; transition: border-color .2s ease; }
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus { outline: none; border-color: var(--primary-1); box-shadow: 0 0 0 3px rgba(0,123,255,.1); }
         .form-group textarea { resize: vertical; min-height: 100px; }
-        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
-        .detail-section { margin-bottom: 25px; padding: 20px; background: #f8f9fa; border-radius: 10px; }
-        .detail-section h3 { color: #007bff; margin-bottom: 15px; font-size: 1.2rem; border-bottom: 2px solid #007bff; padding-bottom: 5px; }
-        .detail-item { display: grid; grid-template-columns: 1fr 2fr; gap: 10px; margin-bottom: 10px; padding: 8px 0; border-bottom: 1px solid #e9ecef; }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        .detail-section { margin-bottom: 18px; padding: 16px; background: #f8f9fa; border-radius: 12px; }
+        .detail-section h3 { color: var(--primary-1); margin-bottom: 12px; font-size: 1.05rem; border-bottom: 2px solid var(--primary-1); padding-bottom: 6px; }
+        .detail-item { display: grid; grid-template-columns: 1fr 2fr; gap: 10px; margin-bottom: 8px; padding: 6px 0; border-bottom: 1px solid #e9ecef; }
         .detail-item:last-child { border-bottom: none; }
         .detail-label { font-weight: 600; color: #495057; }
         .detail-value { color: #6c757d; }
-        .no-cases { text-align: center; padding: 60px 20px; color: #6c757d; font-size: 1.1rem; }
-        .no-cases i { font-size: 4rem; margin-bottom: 20px; opacity: .5; }
-        @media (max-width: 768px) {
-            .container { padding: 10px; }
-            .header h2 { font-size: 1.8rem; }
-            .controls-row { flex-direction: column; align-items: stretch; }
-            .search-box { min-width: auto; }
-            .cases-grid { grid-template-columns: 1fr; }
+        .no-cases { text-align: center; padding: 48px 16px; color: #fff; font-weight: bold; font-size: 1.05rem; }
+        .no-cases i { font-size: 3rem; margin-bottom: 14px; opacity: .5; }
+
+        /* Extra responsive polish */
+        @media (max-width: 992px) {
+            .container { padding: 14px; }
             .form-row { grid-template-columns: 1fr; }
-            .modal-content { width: 95%; margin: 5% auto; }
-            .detail-item { grid-template-columns: 1fr; gap: 5px; }
+        }
+        @media (max-width: 768px) {
+            .header { padding: 20px; }
+            .controls-row { flex-direction: column; align-items: stretch; }
+            .cases-grid { grid-template-columns: 1fr; }
+            .modal-content { width: 100%; max-height: 94vh; }
+            .detail-item { grid-template-columns: 1fr; gap: 6px; }
+        }
+        @media (max-width: 380px) {
+            .btn { width: 100%; justify-content: center; }
+            .btn-small { width: auto; }
         }
         @media print {
             body { background: white; }
             .container { max-width: none; padding: 0; }
             .controls, .case-actions, .modal-header .close { display: none !important; }
             .case-card, .modal-content { box-shadow: none; border: 1px solid #ddd; break-inside: avoid; margin-bottom: 20px; }
-            .modal { display: block !important; position: static; background: none; }
+            .modal { display: block !important; position: static; background: none; padding:0; }
             .modal-content { margin: 0; width: 100%; max-height: none; overflow: visible; }
         }
     </style>
@@ -150,7 +164,6 @@
             <div class="modal-header">
                 <h2 id="modalTitle">Nuevo Caso</h2>
                 <div class="modal-actions">
-                    <!-- Botón imprimir dentro del modal de casos (pedido 3) -->
                     <button class="btn btn-warning btn-small" onclick="printCaseFromForm()">🖨️ Imprimir</button>
                     <span class="close" onclick="closeModal()">&times;</span>
                 </div>
@@ -349,7 +362,7 @@
                         </div>
                     </div>
 
-                    <div style="text-align:center; margin-top: 30px;">
+                    <div style="text-align:center; margin-top: 20px;">
                         <button type="submit" class="btn btn-success">💾 Guardar Caso</button>
                         <button type="button" class="btn" onclick="closeModal()" style="margin-left:10px;">❌ Cancelar</button>
                     </div>
@@ -372,63 +385,67 @@
         </div>
     </div>
 
-    <!-- Firebase + Firestore (módulos) -->
+    <!-- Firebase App + Realtime Database (módulos) -->
     <script type="module">
-        // 1) Inicializar Firebase
+        // Inicializar Firebase App
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
         import {
-            getFirestore, collection, doc, setDoc, addDoc, getDoc, getDocs, onSnapshot,
-            deleteDoc, serverTimestamp, enableIndexedDbPersistence, query, orderBy
-        } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
+            getDatabase, ref, set, get, onValue, remove, child, update
+        } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-database.js";
 
+        // ⚠️ Asegúrese de que su Realtime Database esté creado en el proyecto.
+        // El databaseURL suele tener el formato: https://<PROJECT_ID>-default-rtdb.firebaseio.com
         const firebaseConfig = {
             apiKey: "AIzaSyDaMuUaVI_61xHMQoRSsIkHi9fqvZgkj6s",
             authDomain: "articulo583.firebaseapp.com",
             projectId: "articulo583",
             storageBucket: "articulo583.firebasestorage.app",
             messagingSenderId: "972837111055",
-            appId: "1:972837111055:web:aa37d0d28d8b0d0a0f6a7a"
+            appId: "1:972837111055:web:aa37d0d28d8b0d0a0f6a7a",
+            databaseURL: "https://articulo583-default-rtdb.firebaseio.com"
         };
 
         const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
-        enableIndexedDbPersistence(db).catch(() => {/* puede fallar en incógnito/múltiples pestañas */});
+        const db = getDatabase(app);
 
         // Estado local (se mantiene la arquitectura/UX original)
         let cases = JSON.parse(localStorage.getItem('defensoriaCases')) || [];
         let currentEditingId = null;
 
-        const casesRef = collection(db, 'casos');
+        const casesRef = ref(db, 'casos');
 
-        // Suscripción en tiempo real a Firestore (pedido 2)
-        const q = query(casesRef);
-        onSnapshot(q, (snapshot) => {
+        // Suscripción en tiempo real a Realtime Database
+        onValue(casesRef, (snapshot) => {
+            const val = snapshot.val();
             const remote = [];
-            snapshot.forEach(docSnap => {
-                const data = docSnap.data();
-                // Asegurar existencia de id
-                if (!data.id) data.id = docSnap.id;
-                remote.push(data);
-            });
+            if (val && typeof val === 'object') {
+                for (const [key, data] of Object.entries(val)) {
+                    remote.push({ id: key, ...data });
+                }
+                // Orden simple por fecha de ingreso descendente si existe
+                remote.sort((a, b) => (b.fechaIngreso || '').localeCompare(a.fechaIngreso || ''));
+            }
             cases = remote;
             localStorage.setItem('defensoriaCases', JSON.stringify(cases)); // espejo local (fallback)
+            renderCases();
+        }, (err) => {
+            // Si falla, mostramos lo local
             renderCases();
         });
 
         // Migración inicial: subir locales que no existan aún
         (async function migrateLocalToRemote(){
             try {
-                const existing = new Set();
-                const snap = await getDocs(casesRef);
-                snap.forEach(d=> existing.add(d.id));
+                const existingSnap = await get(casesRef);
+                const existing = existingSnap.val() || {};
                 for (const c of cases) {
                     const id = c.id || String(Date.now());
-                    if (!existing.has(id)) {
+                    if (!existing[id]) {
                         c.id = id;
-                        await setDoc(doc(db, 'casos', id), {
+                        await set(child(casesRef, id), {
                             ...c,
                             fechaCreacion: c.fechaCreacion || (new Date().toISOString().split('T')[0])
-                        }, { merge: true });
+                        });
                     }
                 }
             } catch (e) { /* silencioso */ }
@@ -439,7 +456,7 @@
             renderCases();
         });
 
-        // UI logic (idéntica a la original, con persistencia remota añadida)
+        // UI logic (idéntica a la original, con persistencia remota en RTDB)
         window.openModal = function(mode, caseId = null) {
             const modal = document.getElementById('caseModal');
             const modalTitle = document.getElementById('modalTitle');
@@ -454,10 +471,17 @@
         function loadCaseData(caseId) {
             const caseData = cases.find(c => c.id === caseId);
             if (!caseData) return;
-            Object.keys(caseData).forEach(key => {
-                const element = document.getElementById(key);
-                if (element) element.value = caseData[key] || '';
-            });
+            const fields = [
+                'numeroExpediente','fechaIngreso','estado','prioridad','nombreMenor','apellidoMenor','fechaNacimiento','dniMenor','lugarNacimiento',
+                'nombreMadre','apellidoMadre','dniMadre','telefonoMadre','domicilioMadre','nombrePadre','apellidoPadre','dniPadre','telefonoPadre',
+                'domicilioPadre','informacionAdicionalPadre','fechaCitacionMadre','fechaDeclaracionJuramento','fechaRemisionMP','numeroOficioMP',
+                'observacionesActuaciones','juzgadoInterviniente','numeroExpedienteJudicial','fechaInicioAccion','estadoJudicial','observacionesJudiciales',
+                'notasGenerales'
+            ];
+            for (const key of fields) {
+                const el = document.getElementById(key);
+                if (el) el.value = caseData[key] || '';
+            }
         }
 
         async function saveCaseData() {
@@ -498,33 +522,34 @@
             };
 
             try {
-                // Guardar en Firestore (colección 'casos')
-                await setDoc(doc(db, 'casos', caseData.id), {
+                const id = caseData.id;
+                // Guardar/actualizar en Realtime Database (nodo 'casos/<id>')
+                await set(child(casesRef, id), {
                     ...caseData,
-                    fechaCreacion: currentEditingId ? (caseData.fechaCreacion || null) : (new Date().toISOString().split('T')[0]),
-                    ts: serverTimestamp()
-                }, { merge: true });
+                    fechaCreacion: (currentEditingId ? caseData.fechaCreacion : (new Date().toISOString().split('T')[0])) || (new Date().toISOString().split('T')[0]),
+                    ts: Date.now()
+                });
 
                 // Espejo local (mantener lógica existente)
-                const idx = cases.findIndex(c => c.id === caseData.id);
+                const idx = cases.findIndex(c => c.id === id);
                 if (idx !== -1) cases[idx] = caseData; else cases.push(caseData);
                 localStorage.setItem('defensoriaCases', JSON.stringify(cases));
                 renderCases();
                 closeModal();
             } catch (e) {
-                alert('Error al guardar en Firestore. Revise la conexión o reglas de seguridad.');
+                alert('Error al guardar en Realtime Database. Revise la conexión o reglas de seguridad.');
             }
         }
 
         async function deleteCase(caseId) {
             if (!confirm('¿Está seguro de que desea eliminar este caso? Esta acción no se puede deshacer.')) return;
             try {
-                await deleteDoc(doc(db, 'casos', caseId));
+                await remove(child(casesRef, caseId));
                 cases = cases.filter(c => c.id !== caseId);
                 localStorage.setItem('defensoriaCases', JSON.stringify(cases));
                 renderCases();
             } catch (e) {
-                alert('No se pudo eliminar el caso en Firestore.');
+                alert('No se pudo eliminar el caso en Realtime Database.');
             }
         }
 
@@ -597,13 +622,13 @@
             container.innerHTML = cases.map(caseData => `
                 <div class="case-card" onclick="viewCase('${caseData.id}')">
                     <div class="case-header">
-                        <div class="case-number">${caseData.numeroExpediente}</div>
+                        <div class="case-number">${caseData.numeroExpediente || ''}</div>
                         <div class="case-status status-${caseData.estado}">${getStatusText(caseData.estado)}</div>
                     </div>
                     <div class="case-info">
-                        <p><strong>Menor:</strong> ${caseData.nombreMenor} ${caseData.apellidoMenor}</p>
-                        <p><strong>Madre:</strong> ${caseData.nombreMadre} ${caseData.apellidoMadre}</p>
-                        <p><strong>Fecha de Ingreso:</strong> ${formatDate(caseData.fechaIngreso)}</p>
+                        <p><strong>Menor:</strong> ${caseData.nombreMenor || ''} ${caseData.apellidoMenor || ''}</p>
+                        <p><strong>Madre:</strong> ${caseData.nombreMadre || ''} ${caseData.apellidoMadre || ''}</p>
+                        <p><strong>Fecha de Ingreso:</strong> ${formatDate(caseData.fechaIngreso) || ''}</p>
                         <p><strong>Prioridad:</strong> ${getPriorityText(caseData.prioridad)}</p>
                     </div>
                     <div class="case-actions" onclick="event.stopPropagation()">
@@ -622,13 +647,13 @@
             container.innerHTML = filteredCases.map(caseData => `
                 <div class="case-card" onclick="viewCase('${caseData.id}')">
                     <div class="case-header">
-                        <div class="case-number">${caseData.numeroExpediente}</div>
+                        <div class="case-number">${caseData.numeroExpediente || ''}</div>
                         <div class="case-status status-${caseData.estado}">${getStatusText(caseData.estado)}</div>
                     </div>
                     <div class="case-info">
-                        <p><strong>Menor:</strong> ${caseData.nombreMenor} ${caseData.apellidoMenor}</p>
-                        <p><strong>Madre:</strong> ${caseData.nombreMadre} ${caseData.apellidoMadre}</p>
-                        <p><strong>Fecha de Ingreso:</strong> ${formatDate(caseData.fechaIngreso)}</p>
+                        <p><strong>Menor:</strong> ${caseData.nombreMenor || ''} ${caseData.apellidoMenor || ''}</p>
+                        <p><strong>Madre:</strong> ${caseData.nombreMadre || ''} ${caseData.apellidoMadre || ''}</p>
+                        <p><strong>Fecha de Ingreso:</strong> ${formatDate(caseData.fechaIngreso) || ''}</p>
                         <p><strong>Prioridad:</strong> ${getPriorityText(caseData.prioridad)}</p>
                     </div>
                     <div class="case-actions" onclick="event.stopPropagation()">
@@ -643,22 +668,22 @@
         window.printAllCases = function() {
             const printWindow = window.open('', '_blank');
             const printContent = `<!DOCTYPE html><html><head><title>Listado Completo de Casos - Defensoría Civil y Comercial 6</title>
-            <style>body{font-family:Arial,sans-serif;margin:20px;} .header{text-align:center;margin-bottom:30px;} .case{border:1px solid #ddd;margin-bottom:20px;padding:15px;break-inside:avoid;} .case-header{font-weight:bold;font-size:1.2em;margin-bottom:10px;} .detail-section{margin-bottom:15px;} .detail-section h4{color:#007bff;margin-bottom:8px;} .detail-item{margin-bottom:5px;} .detail-label{font-weight:bold;display:inline-block;width:200px;}</style></head><body>
+            <style>body{font-family:Arial,sans-serif;margin:20px;} .header{text-align:center;margin-bottom:30px;} .case{border:1px solid #ddd;margin-bottom:20px;padding:15px;break-inside:avoid;} .case-header{font-weight:bold;font-size:1.1em;margin-bottom:10px;} .detail-section{margin-bottom:12px;} .detail-section h4{color:#007bff;margin-bottom:6px;} .detail-item{margin-bottom:4px;} .detail-label{font-weight:bold;display:inline-block;width:200px;}</style></head><body>
             <div class="header"><h1>Listado Completo de Casos</h1><h2>Defensoría Civil y Comercial 6</h2><p>Fecha de impresión: ${new Date().toLocaleDateString('es-AR')}</p></div>
             ${cases.map(caseData => `
                 <div class='case'>
-                  <div class='case-header'>Caso ${caseData.numeroExpediente} - ${getStatusText(caseData.estado)}</div>
+                  <div class='case-header'>Caso ${caseData.numeroExpediente || ''} - ${getStatusText(caseData.estado)}</div>
                   <div class='detail-section'><h4>Información General</h4>
-                    <div class='detail-item'><span class='detail-label'>Fecha de Ingreso:</span> ${formatDate(caseData.fechaIngreso)}</div>
+                    <div class='detail-item'><span class='detail-label'>Fecha de Ingreso:</span> ${formatDate(caseData.fechaIngreso) || ''}</div>
                     <div class='detail-item'><span class='detail-label'>Prioridad:</span> ${getPriorityText(caseData.prioridad)}</div>
                   </div>
                   <div class='detail-section'><h4>Menor</h4>
-                    <div class='detail-item'><span class='detail-label'>Nombre:</span> ${caseData.nombreMenor} ${caseData.apellidoMenor}</div>
+                    <div class='detail-item'><span class='detail-label'>Nombre:</span> ${caseData.nombreMenor || ''} ${caseData.apellidoMenor || ''}</div>
                     <div class='detail-item'><span class='detail-label'>DNI:</span> ${caseData.dniMenor || 'No especificado'}</div>
                     <div class='detail-item'><span class='detail-label'>Fecha de Nacimiento:</span> ${formatDate(caseData.fechaNacimiento) || 'No especificada'}</div>
                   </div>
                   <div class='detail-section'><h4>Madre</h4>
-                    <div class='detail-item'><span class='detail-label'>Nombre:</span> ${caseData.nombreMadre} ${caseData.apellidoMadre}</div>
+                    <div class='detail-item'><span class='detail-label'>Nombre:</span> ${caseData.nombreMadre || ''} ${caseData.apellidoMadre || ''}</div>
                     <div class='detail-item'><span class='detail-label'>DNI:</span> ${caseData.dniMadre || 'No especificado'}</div>
                     <div class='detail-item'><span class='detail-label'>Teléfono:</span> ${caseData.telefonoMadre || 'No especificado'}</div>
                   </div>
@@ -674,7 +699,7 @@
             printWindow.print();
         }
 
-        // Impresión desde el formulario (pedido 3)
+        // Impresión desde el formulario
         window.printCaseFromForm = function() {
             const val = (id) => (document.getElementById(id)?.value || '');
             const data = {
@@ -687,7 +712,7 @@
                 notasGenerales: val('notasGenerales')
             };
             const printWindow = window.open('', '_blank');
-            printWindow.document.write(`<!DOCTYPE html><html><head><title>Caso ${data.numeroExpediente}</title><style>body{font-family:Arial,sans-serif;margin:20px;} .section{margin-bottom:15px;} h2{margin:0 0 10px;} .row{margin:4px 0;} .label{font-weight:bold;display:inline-block;width:220px;}</style></head><body>
+            printWindow.document.write(`<!DOCTYPE html><html><head><title>Caso ${data.numeroExpediente}</title><style>body{font-family:Arial,sans-serif;margin:20px;} .section{margin-bottom:12px;} h2{margin:0 0 10px;} .row{margin:4px 0;} .label{font-weight:bold;display:inline-block;width:220px;}</style></head><body>
                 <h1>Detalle de Caso (Borrador)</h1>
                 <div class='section'><h2>Información General</h2>
                   <div class='row'><span class='label'>Número de Expediente:</span> ${data.numeroExpediente}</div>
